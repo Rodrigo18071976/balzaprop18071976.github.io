@@ -1,0 +1,1560 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Balza Prop - Plataforma Multi-Usuario de Administración Inmobiliaria</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f6ff',
+                            100: '#e0edff',
+                            500: '#2563eb',
+                            600: '#1d4ed8',
+                            700: '#1e40af',
+                            800: '#1e3a8a',
+                            900: '#172554',
+                        },
+                        slate: {
+                            850: '#152032',
+                            950: '#0b1120',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .modal-blur {
+            backdrop-filter: blur(4px);
+        }
+        .pulse-online {
+            box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+            animation: pulse-green 2s infinite;
+        }
+        @keyframes pulse-green {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased h-screen flex overflow-hidden">
+
+    <aside id="sidebar" class="w-64 bg-slate-900 text-slate-300 flex flex-col transition-all duration-300 z-30 shrink-0 hidden md:flex border-r border-slate-800">
+        <!-- Logo Header -->
+        <div class="h-16 px-6 flex items-center justify-between border-b border-slate-800">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-brand-500/30 font-bold text-lg">
+                    <i class="fas fa-building-user"></i>
+                </div>
+                <div>
+                    <span class="text-base font-extrabold text-white tracking-tight block leading-tight">InmoGestion</span>
+                    <span class="text-[10px] uppercase font-semibold tracking-wider text-brand-400">Team Multi-User</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Real-time Status Widget -->
+        <div class="px-4 pt-3 pb-1">
+            <div class="bg-slate-850 border border-slate-800 rounded-xl p-2.5 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 pulse-online"></span>
+                    <span class="text-xs font-semibold text-slate-200">En vivo</span>
+                </div>
+                <span id="sync-status" class="text-[10px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800/50 px-2 py-0.5 rounded-md">Sincronizado</span>
+            </div>
+        </div>
+
+        <!-- Navigation Menu -->
+        <nav class="flex-1 overflow-y-auto py-3 px-3 space-y-1">
+            <div class="px-3 pb-2 text-[11px] font-bold uppercase tracking-wider text-slate-500">Principal</div>
+            
+            <a href="#" class="nav-btn active flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-white bg-brand-600 shadow-md shadow-brand-600/20" data-view="dashboard">
+                <i class="fas fa-chart-line w-5 text-center text-base"></i>
+                Dashboard
+            </a>
+            
+            <a href="#" class="nav-btn flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/80 transition-all" data-view="properties">
+                <i class="fas fa-city w-5 text-center text-base"></i>
+                Propiedades
+                <span id="badge-properties-count" class="ml-auto bg-slate-800 text-slate-300 text-xs px-2 py-0.5 rounded-full font-semibold">0</span>
+            </a>
+
+            <a href="#" class="nav-btn flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/80 transition-all" data-view="tenants">
+                <i class="fas fa-users w-5 text-center text-base"></i>
+                Inquilinos
+            </a>
+
+            <a href="#" class="nav-btn flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/80 transition-all" data-view="landlords">
+                <i class="fas fa-user-tie w-5 text-center text-base"></i>
+                Propietarios
+            </a>
+
+            <div class="px-3 pt-4 pb-2 text-[11px] font-bold uppercase tracking-wider text-slate-500">Gestión Operativa</div>
+
+            <a href="#" class="nav-btn flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/80 transition-all" data-view="leases">
+                <i class="fas fa-file-contract w-5 text-center text-base"></i>
+                Contratos
+            </a>
+
+            <a href="#" class="nav-btn flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/80 transition-all" data-view="payments">
+                <i class="fas fa-wallet w-5 text-center text-base"></i>
+                Cobros y Pagos
+            </a>
+
+            <a href="#" class="nav-btn flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/80 transition-all" data-view="maintenance">
+                <i class="fas fa-screwdriver-wrench w-5 text-center text-base"></i>
+                Mantenimiento
+                <span id="badge-tickets-count" class="ml-auto bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[11px] px-1.5 py-0.5 rounded-full font-bold">0</span>
+            </a>
+
+            <div class="px-3 pt-4 pb-2 text-[11px] font-bold uppercase tracking-wider text-slate-500">Colaboración</div>
+
+            <a href="#" class="nav-btn flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/80 transition-all" data-view="team">
+                <i class="fas fa-users-gear w-5 text-center text-base"></i>
+                Equipo de Trabajo
+            </a>
+
+            <a href="#" class="nav-btn flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/80 transition-all" data-view="calculator">
+                <i class="fas fa-calculator w-5 text-center text-base"></i>
+                Ajuste Contratos
+            </a>
+        </nav>
+
+        <div class="p-3 border-t border-slate-800 bg-slate-900/80">
+            <div class="bg-slate-850 p-2.5 rounded-xl border border-slate-800">
+                <div class="flex items-center gap-2.5">
+                    <div id="user-avatar" class="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center text-white font-bold text-xs shrink-0">
+                        SR
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p id="user-name-display" class="text-xs font-bold text-white truncate">Sofía Rossi</p>
+                        <p id="user-role-display" class="text-[10px] text-brand-400 font-medium truncate">Administrador</p>
+                    </div>
+                    <button onclick="openModal('switch-user')" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition-colors" title="Cambiar usuario activo">
+                        <i class="fas fa-arrows-rotate text-xs"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <div class="md:hidden fixed top-0 left-0 right-0 h-16 bg-slate-900 text-white z-40 px-4 flex items-center justify-between border-b border-slate-800 shadow-md">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center text-white font-bold">
+                <i class="fas fa-building-user text-sm"></i>
+            </div>
+            <span class="font-bold text-base tracking-tight">InmoGestion Pro</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <button onclick="openModal('switch-user')" class="p-2 text-slate-300 hover:text-white bg-slate-800 rounded-lg text-xs font-medium flex items-center gap-1.5">
+                <i class="fas fa-user-circle"></i>
+                <span id="mobile-user-name" class="max-w-[80px] truncate">Sofía</span>
+            </button>
+            <button id="btn-toggle-mobile-menu" class="p-2 text-slate-300 hover:text-white focus:outline-none">
+                <i class="fas fa-bars text-xl"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="flex-1 flex flex-col h-screen overflow-hidden pt-16 md:pt-0">
+        
+        <!-- Top Navbar -->
+        <header class="h-16 bg-white border-b border-slate-200 hidden md:flex items-center justify-between px-8 z-10 shrink-0">
+            <!-- Search & Workspace Badge -->
+            <div class="flex items-center gap-4">
+                <div class="relative w-80">
+                    <i class="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <input type="text" id="global-search-input" onkeyup="handleGlobalSearch(this.value)" placeholder="Buscar en todo el sistema..." class="w-full pl-9 pr-4 py-2 bg-slate-100 hover:bg-slate-100/80 focus:bg-white text-xs rounded-xl border border-transparent focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition-all">
+                </div>
+
+                <div class="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600">
+                    <i class="fas fa-network-wired text-brand-600"></i>
+                    <span>Espacio Compartido</span>
+                    <button onclick="copyWorkspaceId()" class="ml-1 text-slate-400 hover:text-brand-600 transition-colors" title="Copiar ID del Espacio">
+                        <i class="far fa-copy"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Header Actions -->
+            <div class="flex items-center gap-3">
+                <button onclick="openModal('quick-add')" class="bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-3.5 py-2 rounded-xl transition-all flex items-center gap-2 shadow-sm shadow-brand-500/30">
+                    <i class="fas fa-plus"></i>
+                    <span>Nuevo Registro</span>
+                </button>
+
+                <div class="h-6 w-px bg-slate-200"></div>
+
+                <!-- Online Active Users Pill -->
+                <div onclick="navigateTo('team')" class="cursor-pointer flex items-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200/80 px-3 py-1.5 rounded-xl transition-all">
+                    <div class="flex -space-x-2 overflow-hidden">
+                        <div class="inline-block h-6 w-6 rounded-full ring-2 ring-white bg-brand-600 text-white text-[10px] font-bold flex items-center justify-center">SR</div>
+                        <div class="inline-block h-6 w-6 rounded-full ring-2 ring-white bg-emerald-600 text-white text-[10px] font-bold flex items-center justify-center">CM</div>
+                        <div class="inline-block h-6 w-6 rounded-full ring-2 ring-white bg-amber-600 text-white text-[10px] font-bold flex items-center justify-center">EG</div>
+                    </div>
+                    <span class="text-xs font-bold text-slate-700">3 Activos</span>
+                </div>
+
+                <!-- Current User ID Snippet -->
+                <button onclick="copyUserId()" class="text-xs font-mono bg-slate-100 hover:bg-slate-200 px-2.5 py-1.5 rounded-xl text-slate-600 transition-all flex items-center gap-1.5" title="Copiar tu ID completo para invitar">
+                    <i class="fas fa-fingerprint text-slate-400"></i>
+                    <span id="user-id-badge" class="truncate max-w-[80px]">uid...</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Workspace View Container -->
+        <main id="main-content" class="flex-1 overflow-y-auto bg-slate-50 p-4 md:p-8">
+            <!-- Dynamic view injected via JavaScript -->
+        </main>
+    </div>
+
+    <!-- Mobile Drawer Overlay -->
+    <div id="mobile-overlay" class="fixed inset-0 bg-slate-950/60 z-40 hidden transition-opacity backdrop-blur-sm"></div>
+
+    <!-- Toast Notifications Container -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
+
+    <!-- Modal Base Container -->
+    <div id="modal-container" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-slate-950/50 modal-blur animate-fade-in">
+        <div id="modal-card" class="bg-white rounded-2xl shadow-2xl border border-slate-100 w-full max-w-xl max-h-[90vh] overflow-hidden flex flex-col transform transition-all">
+            <!-- Modal header & body will be injected dynamically -->
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase Setup Config
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'inmogestion-multiuser';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "demo-api-key",
+            authDomain: "demo-app.firebaseapp.com",
+            projectId: "demo-app",
+            storageBucket: "demo-app.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef123456"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Global Application State
+        window.AppState = {
+            currentUser: {
+                id: null,
+                name: 'Rodrigo Blzarelli',
+                role: 'Administrador Principal',
+                avatar: 'SR',
+                color: 'bg-brand-600'
+            },
+            appId: appId,
+            db: db,
+            auth: auth,
+            currentView: 'dashboard',
+            properties: [],
+            tenants: [],
+            landlords: [],
+            leases: [],
+            payments: [],
+            maintenanceTickets: [],
+            activityLogs: [],
+            teamMembers: [
+                { id: 'usr-01', name: 'Rodrigo Balzarelli', role: 'Administrador Principal', email: 'rbalza59@gmail.com', active: true, color: 'bg-brand-600', initials: 'SR' },
+                { id: 'usr-02', name: 'Antonella Balzarelli', role: 'Agente Comercial', email: 'antobalza@inmogestion.com', active: true, color: 'bg-emerald-600', initials: 'CM' },
+                { id: 'usr-03', name: 'Elena Gómez', role: 'Propietario / Gestor', email: 'elena.gomez@gmail.com', active: false, color: 'bg-amber-600', initials: 'EG' }
+            ]
+        };
+
+        // Pre-populated Fallback Datasets (used for initial Firestore seeding)
+        const INITIAL_SEED = {
+            properties: [
+                {
+                    id: 'PROP-101',
+                    address: 'Av. del Libertador 2440, Piso 8A',
+                    city: 'Buenos Aires',
+                    type: 'Departamento',
+                    rooms: 3,
+                    bathrooms: 2,
+                    area: 95,
+                    rentAmount: 480000,
+                    expenses: 65000,
+                    status: 'Alquilado',
+                    landlordId: 'PROP-01',
+                    tenantId: 'INQ-01',
+                    agent: 'Sofía Rossi',
+                    img: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=600'
+                },
+                {
+                    id: 'PROP-102',
+                    address: 'Calle Gorriti 4820',
+                    city: 'Palermo',
+                    type: 'Local Comercial',
+                    rooms: 2,
+                    bathrooms: 1,
+                    area: 120,
+                    rentAmount: 850000,
+                    expenses: 40000,
+                    status: 'Disponible',
+                    landlordId: 'PROP-02',
+                    tenantId: null,
+                    agent: 'Carlos Méndez',
+                    img: 'https://images.unsplash.com/photo-1582083569733-1496a798ac67?auto=format&fit=crop&q=80&w=600'
+                },
+                {
+                    id: 'PROP-103',
+                    address: 'Calle Los Robles 1150',
+                    city: 'San Isidro',
+                    type: 'Casa',
+                    rooms: 5,
+                    bathrooms: 3,
+                    area: 280,
+                    rentAmount: 1250000,
+                    expenses: 110000,
+                    status: 'Alquilado',
+                    landlordId: 'PROP-01',
+                    tenantId: 'INQ-02',
+                    agent: 'Sofía Rossi',
+                    img: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80&w=600'
+                }
+            ],
+            tenants: [
+                { id: 'INQ-01', name: 'Martín Benítez', dni: '35.482.109', phone: '+54 9 11 5421-9988', email: 'martin.benitez@gmail.com', propertyId: 'PROP-101', status: 'Al Día', paymentDay: 5 },
+                { id: 'INQ-02', name: 'Valeria Soria', dni: '29.112.980', phone: '+54 9 11 6722-1100', email: 'v.soria@empresa.com', propertyId: 'PROP-103', status: 'Al Día', paymentDay: 10 }
+            ],
+            landlords: [
+                { id: 'PROP-01', name: 'Roberto Fernández', phone: '+54 9 11 4410-2233', email: 'r.fernandez@propietarios.com', bankAccount: 'CBU: 0170098320000001234567', commission: 5, propertiesCount: 2 },
+                { id: 'PROP-02', name: 'Inversiones Nordelta S.A.', phone: '+54 9 11 4000-8800', email: 'contacto@inversionesnordelta.com', bankAccount: 'CBU: 0720112388000099182734', commission: 4, propertiesCount: 1 }
+            ],
+            leases: [
+                { id: 'CONT-2024-01', propertyId: 'PROP-101', tenantId: 'INQ-01', startDate: '2025-01-01', endDate: '2026-12-31', monthlyAmount: 480000, adjustmentIndex: 'IPC (Trimestral)', depositAmount: 480000, status: 'Vigente' },
+                { id: 'CONT-2024-02', propertyId: 'PROP-103', tenantId: 'INQ-02', startDate: '2024-06-01', endDate: '2026-05-31', monthlyAmount: 1250000, adjustmentIndex: 'ICL (Cuatrimestral)', depositAmount: 1250000, status: 'Vigente' }
+            ],
+            payments: [
+                { id: 'PAY-8801', date: '2026-09-04', tenant: 'Martín Benítez', property: 'Av. del Libertador 2440', amount: 480000, concept: 'Alquiler Sep 2026', status: 'Pagado', method: 'Transferencia', recordedBy: 'Sofía Rossi' },
+                { id: 'PAY-8802', date: '2026-09-08', tenant: 'Valeria Soria', property: 'Calle Los Robles 1150', amount: 1250000, concept: 'Alquiler Sep 2026', status: 'Pagado', method: 'Transferencia', recordedBy: 'Carlos Méndez' }
+            ],
+            maintenanceTickets: [
+                { id: 'INC-01', propertyId: 'PROP-101', title: 'Revisión periódica de caldera', priority: 'Media', status: 'Pendiente', contractor: 'Gasista Matriculado', date: '2026-09-28', assignedAgent: 'Carlos Méndez' }
+            ],
+            activityLogs: [
+                { id: 'act-1', user: 'Sofía Rossi', action: 'inicio de sesión en la plataforma compartida', timestamp: 'Hace 5 min' },
+                { id: 'act-2', user: 'Carlos Méndez', action: 'registró pago PAY-8802 de Valeria Soria', timestamp: 'Hace 25 min' }
+            ]
+        };
+
+        async function initAuthAndFirestore() {
+            try {
+                const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+                
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                const uid = auth.currentUser ? auth.currentUser.uid : 'anon-' + Math.random().toString(36).substring(2, 7);
+                window.AppState.currentUser.id = uid;
+
+                document.getElementById('user-id-badge').textContent = uid;
+
+                // Setup Realtime Snapshots for Shared Workspace Collections
+                setupCollectionListener('properties', 'properties', INITIAL_SEED.properties);
+                setupCollectionListener('tenants', 'tenants', INITIAL_SEED.tenants);
+                setupCollectionListener('landlords', 'landlords', INITIAL_SEED.landlords);
+                setupCollectionListener('leases', 'leases', INITIAL_SEED.leases);
+                setupCollectionListener('payments', 'payments', INITIAL_SEED.payments);
+                setupCollectionListener('maintenanceTickets', 'maintenance', INITIAL_SEED.maintenanceTickets);
+                setupCollectionListener('activityLogs', 'activity_logs', INITIAL_SEED.activityLogs);
+
+            } catch (err) {
+                console.error("Authentication or Firestore initialization error:", err);
+                document.getElementById('sync-status').textContent = 'Modo Local';
+                document.getElementById('sync-status').className = 'text-[10px] font-mono text-amber-400 bg-amber-950/60 border border-amber-800/50 px-2 py-0.5 rounded-md';
+                
+                // Fallback to initial seeds in memory if offline
+                Object.assign(window.AppState, INITIAL_SEED);
+                window.updateUI();
+            }
+        }
+
+        function setupCollectionListener(stateKey, collectionName, fallbackData) {
+            const colRef = collection(db, 'artifacts', appId, 'public', 'data', collectionName);
+
+            onSnapshot(colRef, (snapshot) => {
+                if (snapshot.empty && fallbackData && fallbackData.length > 0) {
+                    // Seed Firestore if empty
+                    fallbackData.forEach(async (item) => {
+                        const itemDoc = doc(db, 'artifacts', appId, 'public', 'data', collectionName, item.id || `doc-${Math.random().toString(36).substring(2,7)}`);
+                        await setDoc(itemDoc, item).catch(() => {});
+                    });
+                } else {
+                    const dataList = [];
+                    snapshot.forEach(docSnap => {
+                        dataList.push({ id: docSnap.id, ...docSnap.data() });
+                    });
+                    window.AppState[stateKey] = dataList;
+                    window.updateUI();
+                }
+            }, (error) => {
+                console.warn(`Firestore collection [${collectionName}] warning:`, error.message);
+                if (!window.AppState[stateKey] || window.AppState[stateKey].length === 0) {
+                    window.AppState[stateKey] = fallbackData;
+                }
+                window.updateUI();
+            });
+        }
+
+        // Expose database helpers globally
+        window.dbHelpers = {
+            async saveDocument(collectionName, docId, data) {
+                const user = window.AppState.currentUser;
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', collectionName, docId);
+                await setDoc(docRef, data, { merge: true });
+                
+                // Log activity
+                const actRef = doc(db, 'artifacts', appId, 'public', 'data', 'activity_logs', `act-${Date.now()}`);
+                await setDoc(actRef, {
+                    user: user.name,
+                    action: `actualizó/creó registro en ${collectionName}`,
+                    timestamp: 'Justo ahora'
+                });
+            },
+            async deleteDocument(collectionName, docId) {
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', collectionName, docId);
+                await deleteDoc(docRef);
+            }
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initAuthAndFirestore();
+        });
+    </script>
+
+    <script>
+        // --- HELPER UTILITIES ---
+        const formatMoney = (amount) => {
+            return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(amount || 0);
+        };
+
+        const formatDate = (dateStr) => {
+            if (!dateStr) return '-';
+            const parts = dateStr.split('-');
+            if (parts.length !== 3) return dateStr;
+            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        };
+
+        const getStatusBadge = (status) => {
+            const map = {
+                'Alquilado': 'bg-emerald-50 text-emerald-700 border-emerald-200/80',
+                'Disponible': 'bg-blue-50 text-brand-700 border-blue-200/80',
+                'Mantenimiento': 'bg-amber-50 text-amber-700 border-amber-200/80',
+                'Vigente': 'bg-emerald-50 text-emerald-700 border-emerald-200/80',
+                'Finalizado': 'bg-slate-100 text-slate-600 border-slate-200',
+                'Al Día': 'bg-emerald-50 text-emerald-700 border-emerald-200/80',
+                'Atrasado': 'bg-rose-50 text-rose-700 border-rose-200/80',
+                'Inactivo': 'bg-slate-100 text-slate-600 border-slate-200',
+                'Pagado': 'bg-emerald-50 text-emerald-700 border-emerald-200/80',
+                'Pendiente': 'bg-amber-50 text-amber-700 border-amber-200/80',
+                'En Progreso': 'bg-blue-50 text-brand-700 border-blue-200/80'
+            };
+            const cls = map[status] || 'bg-slate-100 text-slate-700 border-slate-200';
+            return `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${cls}">
+                <span class="w-1.5 h-1.5 rounded-full bg-current"></span>
+                ${status}
+            </span>`;
+        };
+
+        const showToast = (message, type = 'success') => {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            
+            const toast = document.createElement('div');
+            const icons = {
+                success: 'fa-check-circle text-emerald-500',
+                error: 'fa-exclamation-circle text-rose-500',
+                info: 'fa-info-circle text-brand-500'
+            };
+
+            toast.className = 'pointer-events-auto bg-slate-900 text-white text-xs p-3.5 rounded-xl shadow-xl flex items-center justify-between gap-3 border border-slate-800 transition-all transform translate-y-4 opacity-0 animate-fade-in';
+            toast.innerHTML = `
+                <div class="flex items-center gap-2.5">
+                    <i class="fas ${icons[type] || icons.info} text-base"></i>
+                    <span class="font-medium">${message}</span>
+                </div>
+                <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-white"><i class="fas fa-times"></i></button>
+            `;
+
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.remove('translate-y-4', 'opacity-0'), 10);
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        };
+
+        const copyWorkspaceId = () => {
+            const text = window.AppState.appId;
+            const temp = document.createElement('textarea');
+            temp.value = text;
+            document.body.appendChild(temp);
+            temp.select();
+            document.execCommand('copy');
+            document.body.removeChild(temp);
+            showToast('ID del Espacio de Trabajo copiado al portapapeles', 'info');
+        };
+
+        const copyUserId = () => {
+            const text = window.AppState.currentUser.id || 'uid-local';
+            const temp = document.createElement('textarea');
+            temp.value = text;
+            document.body.appendChild(temp);
+            temp.select();
+            document.execCommand('copy');
+            document.body.removeChild(temp);
+            showToast('Tu User ID fue copiado para compartir', 'info');
+        };
+
+        const renderDashboard = () => {
+            const props = window.AppState.properties || [];
+            const leases = window.AppState.leases || [];
+            const tickets = window.AppState.maintenanceTickets || [];
+            const logs = window.AppState.activityLogs || [];
+
+            const totalProps = props.length;
+            const rentedProps = props.filter(p => p.status === 'Alquilado').length;
+            const occupancyRate = totalProps > 0 ? Math.round((rentedProps / totalProps) * 100) : 0;
+            const totalRevenue = leases.reduce((acc, l) => acc + (parseFloat(l.monthlyAmount) || 0), 0);
+
+            const logsHTML = logs.length > 0 ? logs.slice(0, 5).map(l => `
+                <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-start gap-2.5">
+                    <div class="w-6 h-6 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
+                        ${l.user ? l.user.split(' ').map(n=>n[0]).join('') : 'U'}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-xs font-semibold text-slate-800"><strong class="text-slate-900">${l.user || 'Usuario'}</strong> ${l.action}</p>
+                        <span class="text-[10px] text-slate-400 mt-0.5 block">${l.timestamp || 'Reciente'}</span>
+                    </div>
+                </div>
+            `).join('') : `<p class="text-xs text-slate-400 italic">No hay actividad reciente registrada.</p>`;
+
+            return `
+                <div class="animate-fade-in space-y-6">
+                    <!-- Top Title Section -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Panel de Control Multi-Usuario</h1>
+                                <span class="bg-brand-50 text-brand-700 text-[11px] font-bold px-2.5 py-0.5 rounded-full border border-brand-200">En Vivo</span>
+                            </div>
+                            <p class="text-xs sm:text-sm text-slate-500 font-medium">Estado general de la cartera y actividad de agentes en tiempo real.</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="openModal('quick-add')" class="bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-3.5 py-2 rounded-xl transition-all shadow-sm shadow-brand-500/30 flex items-center gap-2">
+                                <i class="fas fa-plus"></i>
+                                <span>Añadir Operación</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Key Metric Cards -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Inmuebles</span>
+                                <div class="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center font-bold">
+                                    <i class="fas fa-building"></i>
+                                </div>
+                            </div>
+                            <div class="flex items-baseline justify-between">
+                                <span class="text-3xl font-extrabold text-slate-900">${totalProps}</span>
+                                <span class="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">Shared Workspace</span>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Tasa de Ocupación</span>
+                                <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                                    <i class="fas fa-chart-pie"></i>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex items-baseline justify-between mb-2">
+                                    <span class="text-3xl font-extrabold text-slate-900">${occupancyRate}%</span>
+                                    <span class="text-xs text-slate-500 font-medium">${rentedProps} de ${totalProps} un.</span>
+                                </div>
+                                <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                                    <div class="bg-emerald-500 h-2 rounded-full transition-all duration-500" style="width: ${occupancyRate}%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Facturación Mensual</span>
+                                <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                                    <i class="fas fa-sack-dollar"></i>
+                                </div>
+                            </div>
+                            <div>
+                                <span class="text-2xl font-extrabold text-slate-900 tracking-tight block">${formatMoney(totalRevenue)}</span>
+                                <span class="text-xs text-slate-500 font-medium">Contratos activos</span>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Tickets de Servicio</span>
+                                <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+                                    <i class="fas fa-tools"></i>
+                                </div>
+                            </div>
+                            <div class="flex items-baseline justify-between">
+                                <span class="text-3xl font-extrabold text-slate-900">${tickets.length}</span>
+                                <span class="text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md">Atención en curso</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Main Grid: Chart & Live Activity Feed -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Chart Area -->
+                        <div class="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col">
+                            <div class="flex items-center justify-between mb-6">
+                                <div>
+                                    <h3 class="text-base font-bold text-slate-900">Proyección de Recaudación Compartida</h3>
+                                    <p class="text-xs text-slate-500">Recaudación acumulada sincronizada entre agentes</p>
+                                </div>
+                                <span class="text-xs font-semibold bg-slate-100 text-slate-600 px-3 py-1 rounded-lg">Año 2026</span>
+                            </div>
+                            <div class="flex-1 min-h-[260px] relative">
+                                <canvas id="revenueChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Right Side: Realtime Team Audit Log -->
+                        <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-base font-bold text-slate-900">Actividad del Equipo</h3>
+                                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                            </div>
+                            <p class="text-xs text-slate-500 mb-4">Últimas acciones realizadas por colaboradores</p>
+
+                            <div class="space-y-3 flex-1 overflow-y-auto max-h-[300px] pr-1">
+                                ${logsHTML}
+                            </div>
+
+                            <button onclick="navigateTo('team')" class="mt-4 w-full py-2.5 bg-slate-100 hover:bg-slate-200/80 text-slate-700 text-xs font-bold rounded-xl transition-all">
+                                Gestionar Permisos y Equipo
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        };
+
+        const renderProperties = () => {
+            const props = window.AppState.properties || [];
+
+            return `
+                <div class="animate-fade-in space-y-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Catálogo de Propiedades</h1>
+                            <p class="text-xs sm:text-sm text-slate-500 font-medium">Gestión integral de inmuebles asignados al equipo.</p>
+                        </div>
+                        <button onclick="openModal('add-property')" class="bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition-all shadow-sm shadow-brand-500/30 flex items-center gap-2 self-start sm:self-auto">
+                            <i class="fas fa-plus"></i>
+                            <span>Añadir Propiedad</span>
+                        </button>
+                    </div>
+
+                    <!-- Filters Bar -->
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
+                        <div class="relative w-full md:w-80">
+                            <i class="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                            <input type="text" id="prop-filter-search" oninput="applyPropertyFilters()" placeholder="Buscar por dirección o ciudad..." class="w-full pl-9 pr-4 py-2 bg-slate-50 text-xs rounded-xl border border-slate-200 focus:bg-white focus:border-brand-500 outline-none transition-all">
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                            <select id="prop-filter-status" onchange="applyPropertyFilters()" class="bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-2 outline-none focus:border-brand-500 font-medium">
+                                <option value="ALL">Todos los Estados</option>
+                                <option value="Alquilado">Alquilados</option>
+                                <option value="Disponible">Disponibles</option>
+                                <option value="Mantenimiento">Mantenimiento</option>
+                            </select>
+
+                            <select id="prop-filter-type" onchange="applyPropertyFilters()" class="bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-2 outline-none focus:border-brand-500 font-medium">
+                                <option value="ALL">Todos los Tipos</option>
+                                <option value="Departamento">Departamento</option>
+                                <option value="Casa">Casa</option>
+                                <option value="Local Comercial">Local Comercial</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="properties-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        ${props.map(generatePropertyCardHTML).join('')}
+                    </div>
+                </div>
+            `;
+        };
+
+        const generatePropertyCardHTML = (prop) => {
+            const landlords = window.AppState.landlords || [];
+            const landlord = landlords.find(l => l.id === prop.landlordId);
+
+            return `
+                <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-all group">
+                    <div class="relative h-48 bg-slate-100 overflow-hidden">
+                        <img src="${prop.img || 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&q=80&w=600'}" alt="${prop.address}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                        <div class="absolute top-3 right-3">
+                            ${getStatusBadge(prop.status)}
+                        </div>
+                        <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-slate-950/80 via-slate-950/40 to-transparent p-3">
+                            <p class="text-white font-extrabold text-base">${formatMoney(prop.rentAmount)} <span class="text-xs font-normal text-slate-300">/ mes</span></p>
+                        </div>
+                    </div>
+
+                    <div class="p-4 flex-1 flex flex-col justify-between space-y-3">
+                        <div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-[10px] uppercase tracking-wider font-bold text-brand-600">${prop.type}</span>
+                                <span class="text-[10px] text-slate-400 font-mono"><i class="far fa-user text-slate-400"></i> ${prop.agent || 'Agente N/A'}</span>
+                            </div>
+                            <h3 class="text-sm font-bold text-slate-900 truncate mt-0.5" title="${prop.address}">${prop.address}</h3>
+                            <p class="text-xs text-slate-500 flex items-center gap-1 mt-1">
+                                <i class="fas fa-location-dot text-slate-400"></i> ${prop.city}
+                            </p>
+                        </div>
+
+                        <div class="flex items-center gap-3 text-xs text-slate-600 pt-2 border-t border-slate-100">
+                            <span title="Ambientes" class="flex items-center gap-1 font-medium"><i class="fas fa-door-open text-slate-400"></i> ${prop.rooms || 1} amb</span>
+                            <span title="Baños" class="flex items-center gap-1 font-medium"><i class="fas fa-bath text-slate-400"></i> ${prop.bathrooms || 1}</span>
+                            <span title="Superficie" class="flex items-center gap-1 font-medium"><i class="fas fa-ruler-combined text-slate-400"></i> ${prop.area || 0}m²</span>
+                        </div>
+
+                        <div class="text-[11px] bg-slate-50 p-2 rounded-lg text-slate-600 flex items-center justify-between">
+                            <span class="truncate">Prop: <strong class="text-slate-800">${landlord ? landlord.name : 'Asignado'}</strong></span>
+                            <span class="text-slate-400 font-mono text-[10px]">${prop.id}</span>
+                        </div>
+                    </div>
+
+                    <div class="p-3 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between gap-2">
+                        <button onclick="openModal('view-property', '${prop.id}')" class="flex-1 py-1.5 bg-white border border-slate-200 hover:border-brand-500 text-slate-700 hover:text-brand-600 text-xs font-semibold rounded-lg transition-all text-center">
+                            Ver Ficha
+                        </button>
+                    </div>
+                </div>
+            `;
+        };
+
+        const renderTenants = () => {
+            const tenants = window.AppState.tenants || [];
+            const props = window.AppState.properties || [];
+
+            const rows = tenants.map(t => {
+                const prop = props.find(p => p.id === t.propertyId);
+                return `
+                    <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 font-bold text-xs">
+                                    ${t.name ? t.name.split(' ').map(n=>n[0]).join('') : 'IQ'}
+                                </div>
+                                <div>
+                                    <p class="text-sm font-bold text-slate-900">${t.name}</p>
+                                    <p class="text-xs text-slate-500 font-mono">DNI: ${t.dni}</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-xs space-y-0.5">
+                                <p class="text-slate-800 font-medium"><i class="far fa-envelope text-slate-400 w-4"></i> ${t.email}</p>
+                                <p class="text-slate-600"><i class="fas fa-phone text-slate-400 w-4"></i> ${t.phone}</p>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            ${prop ? `<span class="text-xs font-medium text-slate-800 block truncate max-w-xs" title="${prop.address}">${prop.address}</span>` : '<span class="text-xs text-slate-400 italic">Sin asignar</span>'}
+                        </td>
+                        <td class="px-6 py-4">
+                            ${getStatusBadge(t.status)}
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <div class="flex items-center justify-end gap-2">
+                                <a href="https://wa.me/${t.phone ? t.phone.replace(/[^0-9]/g, '') : ''}" target="_blank" class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex items-center justify-center text-xs transition-colors" title="Contactar por WhatsApp">
+                                    <i class="fab fa-whatsapp"></i>
+                                </a>
+                                <button onclick="openModal('edit-tenant', '${t.id}')" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center text-xs transition-colors" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            return `
+                <div class="animate-fade-in space-y-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Directorio de Inquilinos</h1>
+                            <p class="text-xs sm:text-sm text-slate-500 font-medium">Locatarios registrados en la base de datos compartida.</p>
+                        </div>
+                        <button onclick="openModal('add-tenant')" class="bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition-all shadow-sm shadow-brand-500/30 flex items-center gap-2 self-start sm:self-auto">
+                            <i class="fas fa-user-plus"></i>
+                            <span>Nuevo Inquilino</span>
+                        </button>
+                    </div>
+
+                    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead class="bg-slate-50/80 border-b border-slate-200 text-[11px] uppercase tracking-wider font-bold text-slate-500">
+                                    <tr>
+                                        <th class="px-6 py-3.5">Inquilino</th>
+                                        <th class="px-6 py-3.5">Contacto</th>
+                                        <th class="px-6 py-3.5">Inmueble Alquilado</th>
+                                        <th class="px-6 py-3.5">Estado</th>
+                                        <th class="px-6 py-3.5 text-right">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    ${rows.length > 0 ? rows : `<tr><td colspan="5" class="px-6 py-8 text-center text-slate-400 text-xs">No hay inquilinos registrados aún.</td></tr>`}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+        };
+
+        const renderLandlords = () => {
+            const landlords = window.AppState.landlords || [];
+
+            const rows = landlords.map(l => {
+                return `
+                    <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="px-6 py-4">
+                            <div class="font-bold text-sm text-slate-900">${l.name}</div>
+                            <span class="text-[11px] font-mono text-slate-400">${l.id}</span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-xs space-y-0.5">
+                                <p class="text-slate-800 font-medium"><i class="far fa-envelope text-slate-400 w-4"></i> ${l.email}</p>
+                                <p class="text-slate-600"><i class="fas fa-phone text-slate-400 w-4"></i> ${l.phone}</p>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="text-xs font-mono text-slate-600 bg-slate-100 px-2 py-1 rounded">${l.bankAccount}</span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-md border border-indigo-100">${l.commission}%</span>
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <button onclick="showToast('Generando liquidación para ${l.name}...', 'info')" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg font-semibold transition-colors">
+                                Liquidación
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            return `
+                <div class="animate-fade-in space-y-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Propietarios / Locadores</h1>
+                            <p class="text-xs sm:text-sm text-slate-500 font-medium">Cuentas de propietarios e historial de liquidaciones.</p>
+                        </div>
+                        <button onclick="openModal('add-landlord')" class="bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition-all shadow-sm shadow-brand-500/30 flex items-center gap-2 self-start sm:self-auto">
+                            <i class="fas fa-plus"></i>
+                            <span>Nuevo Propietario</span>
+                        </button>
+                    </div>
+
+                    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead class="bg-slate-50/80 border-b border-slate-200 text-[11px] uppercase tracking-wider font-bold text-slate-500">
+                                    <tr>
+                                        <th class="px-6 py-3.5">Propietario</th>
+                                        <th class="px-6 py-3.5">Contacto</th>
+                                        <th class="px-6 py-3.5">CBU / Cuenta</th>
+                                        <th class="px-6 py-3.5">Comisión</th>
+                                        <th class="px-6 py-3.5 text-right">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    ${rows}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+        };
+
+        const renderLeases = () => {
+            const leases = window.AppState.leases || [];
+            const props = window.AppState.properties || [];
+            const tenants = window.AppState.tenants || [];
+
+            const rows = leases.map(l => {
+                const prop = props.find(p => p.id === l.propertyId);
+                const tenant = tenants.find(t => t.id === l.tenantId);
+                return `
+                    <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="px-6 py-4 font-mono text-xs font-bold text-slate-700">${l.id}</td>
+                        <td class="px-6 py-4">
+                            <p class="text-xs font-bold text-slate-900">${prop ? prop.address : 'Inmueble N/A'}</p>
+                            <p class="text-[11px] text-slate-500">Inquilino: ${tenant ? tenant.name : 'N/A'}</p>
+                        </td>
+                        <td class="px-6 py-4 text-xs text-slate-600">
+                            <div>${formatDate(l.startDate)} al ${formatDate(l.endDate)}</div>
+                        </td>
+                        <td class="px-6 py-4 font-bold text-sm text-slate-900">${formatMoney(l.monthlyAmount)}</td>
+                        <td class="px-6 py-4 text-xs font-semibold text-brand-600">${l.adjustmentIndex}</td>
+                        <td class="px-6 py-4">${getStatusBadge(l.status)}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            return `
+                <div class="animate-fade-in space-y-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Contratos de Alquiler</h1>
+                            <p class="text-xs sm:text-sm text-slate-500 font-medium">Contratos vigentes y vencimientos sincronizados en tiempo real.</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead class="bg-slate-50/80 border-b border-slate-200 text-[11px] uppercase tracking-wider font-bold text-slate-500">
+                                    <tr>
+                                        <th class="px-6 py-3.5">ID Contrato</th>
+                                        <th class="px-6 py-3.5">Propiedad / Inquilino</th>
+                                        <th class="px-6 py-3.5">Vigencia</th>
+                                        <th class="px-6 py-3.5">Monto Actual</th>
+                                        <th class="px-6 py-3.5">Ajuste</th>
+                                        <th class="px-6 py-3.5">Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    ${rows}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+        };
+
+        const renderPayments = () => {
+            const payments = window.AppState.payments || [];
+
+            const rows = payments.map(p => {
+                return `
+                    <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="px-6 py-4 font-mono text-xs text-slate-500">${p.id}</td>
+                        <td class="px-6 py-4 text-xs text-slate-600">${formatDate(p.date)}</td>
+                        <td class="px-6 py-4">
+                            <p class="text-xs font-bold text-slate-900">${p.tenant}</p>
+                            <p class="text-[11px] text-slate-500">${p.property}</p>
+                        </td>
+                        <td class="px-6 py-4 text-xs font-medium text-slate-700">${p.concept}</td>
+                        <td class="px-6 py-4 font-extrabold text-sm text-slate-900">${formatMoney(p.amount)}</td>
+                        <td class="px-6 py-4">
+                            <span class="text-[10px] block text-slate-400">Reg: ${p.recordedBy || 'Sistema'}</span>
+                            ${getStatusBadge(p.status)}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            return `
+                <div class="animate-fade-in space-y-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Cobros y Finanzas</h1>
+                            <p class="text-xs sm:text-sm text-slate-500 font-medium">Registro colabroativo de cobranzas e ingresos de alquiler.</p>
+                        </div>
+                        <button onclick="openModal('add-payment')" class="bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition-all shadow-sm shadow-brand-500/30 flex items-center gap-2 self-start sm:self-auto">
+                            <i class="fas fa-plus"></i>
+                            <span>Registrar Cobro</span>
+                        </button>
+                    </div>
+
+                    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead class="bg-slate-50/80 border-b border-slate-200 text-[11px] uppercase tracking-wider font-bold text-slate-500">
+                                    <tr>
+                                        <th class="px-6 py-3.5">Comprobante</th>
+                                        <th class="px-6 py-3.5">Fecha</th>
+                                        <th class="px-6 py-3.5">Inquilino / Inmueble</th>
+                                        <th class="px-6 py-3.5">Concepto</th>
+                                        <th class="px-6 py-3.5">Monto</th>
+                                        <th class="px-6 py-3.5">Estado / Agente</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    ${rows}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+        };
+
+        const renderMaintenance = () => {
+            const tickets = window.AppState.maintenanceTickets || [];
+            const props = window.AppState.properties || [];
+
+            const cards = tickets.map(t => {
+                const prop = props.find(p => p.id === t.propertyId);
+                return `
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between space-y-4">
+                        <div>
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200">Prioridad: ${t.priority}</span>
+                                <span class="text-xs text-slate-400 font-mono">${t.id}</span>
+                            </div>
+                            <h3 class="text-sm font-bold text-slate-900">${t.title}</h3>
+                            <p class="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                                <i class="fas fa-home text-slate-400"></i> ${prop ? prop.address : 'Inmueble'}
+                            </p>
+                        </div>
+
+                        <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                            <span class="text-slate-600 font-medium"><i class="fas fa-user-gear text-slate-400 mr-1"></i> Asignado: ${t.assignedAgent || 'Sin asignar'}</span>
+                            ${getStatusBadge(t.status)}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            return `
+                <div class="animate-fade-in space-y-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Mantenimiento y Tareas</h1>
+                            <p class="text-xs sm:text-sm text-slate-500 font-medium">Asignación de tickets y resolución de problemas técnicos.</p>
+                        </div>
+                        <button onclick="openModal('add-ticket')" class="bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition-all shadow-sm shadow-brand-500/30 flex items-center gap-2 self-start sm:self-auto">
+                            <i class="fas fa-plus"></i>
+                            <span>Nuevo Ticket</span>
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                        ${cards.length > 0 ? cards : `<p class="col-span-full py-8 text-center text-slate-400 text-xs">No hay tickets de mantenimiento pendientes.</p>`}
+                    </div>
+                </div>
+            `;
+        };
+
+        const renderTeamView = () => {
+            const team = window.AppState.teamMembers || [];
+
+            const memberCards = team.map(m => `
+                <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+                    <div class="flex items-center gap-3.5">
+                        <div class="w-10 h-10 rounded-xl ${m.color} text-white font-bold flex items-center justify-center text-sm shadow-md">
+                            ${m.initials}
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900">${m.name}</h3>
+                            <p class="text-xs text-slate-500 font-medium">${m.role}</p>
+                            <p class="text-[11px] text-slate-400 font-mono mt-0.5">${m.email}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Activo
+                        </span>
+                    </div>
+                </div>
+            `).join('');
+
+            return `
+                <div class="animate-fade-in space-y-6 max-w-4xl mx-auto">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Equipo y Permisos Colaborativos</h1>
+                            <p class="text-xs sm:text-sm text-slate-500 font-medium">Gestión de usuarios activos con acceso al espacio de trabajo compartido.</p>
+                        </div>
+                        <button onclick="copyWorkspaceId()" class="bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition-all shadow-sm flex items-center gap-2">
+                            <i class="fas fa-user-plus"></i>
+                            <span>Invitar Colaborador</span>
+                        </button>
+                    </div>
+
+                    <div class="bg-brand-50 border border-brand-100 p-4 rounded-2xl flex items-center justify-between gap-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-brand-600 text-white flex items-center justify-center font-bold text-lg shrink-0">
+                                <i class="fas fa-network-wired"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-bold text-brand-900 uppercase tracking-wider">ID del Espacio de Trabajo</h4>
+                                <p class="text-sm font-mono text-brand-700 font-extrabold mt-0.5">${window.AppState.appId}</p>
+                            </div>
+                        </div>
+                        <button onclick="copyWorkspaceId()" class="px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-lg transition-colors">
+                            Copiar Enlace
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        ${memberCards}
+                    </div>
+                </div>
+            `;
+        };
+
+        const renderCalculator = () => {
+            return `
+                <div class="animate-fade-in space-y-6 max-w-2xl mx-auto">
+                    <div>
+                        <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Calculadora de Ajuste por Inflación (IPC / ICL)</h1>
+                        <p class="text-xs sm:text-sm text-slate-500 font-medium">Herramienta para calcular reajustes oficiales de alquileres.</p>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Monto de Alquiler Base ($)</label>
+                            <input type="number" id="calc-base-amount" value="480000" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:border-brand-500">
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Índice Oficial</label>
+                                <select id="calc-index-type" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:border-brand-500">
+                                    <option value="IPC">IPC (Índice Precios Consumidor)</option>
+                                    <option value="ICL">ICL (Índice Contratos Locación)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Variación Acumulada (%)</label>
+                                <input type="number" id="calc-rate" value="12.5" step="0.1" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:border-brand-500">
+                            </div>
+                        </div>
+
+                        <button onclick="calculateRentAdjustment()" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-brand-500/20 mt-2">
+                            Calcular Reajuste
+                        </button>
+
+                        <div id="calc-result" class="mt-4 p-4 bg-brand-50 border border-brand-100 rounded-xl hidden">
+                            <p class="text-xs text-brand-700 font-semibold uppercase tracking-wider">Nuevo Valor de Alquiler:</p>
+                            <p id="calc-result-amount" class="text-3xl font-extrabold text-brand-900 mt-1">$ 0</p>
+                            <p id="calc-result-diff" class="text-xs text-brand-600 mt-1 font-medium"></p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        };
+
+        const calculateRentAdjustment = () => {
+            const base = parseFloat(document.getElementById('calc-base-amount').value) || 0;
+            const rate = parseFloat(document.getElementById('calc-rate').value) || 0;
+            const increase = base * (rate / 100);
+            const total = base + increase;
+
+            document.getElementById('calc-result-amount').textContent = formatMoney(total);
+            document.getElementById('calc-result-diff').textContent = `Incremento de ${formatMoney(increase)} (+${rate}%)`;
+            document.getElementById('calc-result').classList.remove('hidden');
+        };
+
+        const openModal = (type, param = null) => {
+            const modalContainer = document.getElementById('modal-container');
+            const modalCard = document.getElementById('modal-card');
+
+            let title = 'Formulario';
+            let bodyHTML = '';
+
+            if (type === 'switch-user') {
+                title = 'Cambiar Perfil Activo';
+                bodyHTML = `
+                    <div class="space-y-3">
+                        <p class="text-xs text-slate-500">Selecciona con qué usuario del equipo deseas operar:</p>
+                        ${window.AppState.teamMembers.map(m => `
+                            <button onclick="selectActiveUser('${m.name}', '${m.role}', '${m.initials}', '${m.color}')" class="w-full p-3 bg-slate-50 hover:bg-brand-50 border border-slate-200 hover:border-brand-300 rounded-xl text-left flex items-center gap-3 transition-all">
+                                <div class="w-9 h-9 rounded-lg ${m.color} text-white font-bold text-xs flex items-center justify-center">${m.initials}</div>
+                                <div>
+                                    <p class="text-xs font-bold text-slate-900">${m.name}</p>
+                                    <p class="text-[11px] text-slate-500">${m.role}</p>
+                                </div>
+                            </button>
+                        `).join('')}
+                    </div>
+                `;
+            } else if (type === 'quick-add' || type === 'add-property') {
+                title = 'Añadir Nueva Propiedad al Sistema';
+                bodyHTML = `
+                    <form onsubmit="handleNewPropertySubmit(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Dirección Completa</label>
+                            <input type="text" id="form-prop-address" required placeholder="Ej: Av. Santa Fe 3200" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-brand-500">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Barrio / Ciudad</label>
+                                <input type="text" id="form-prop-city" required placeholder="Ej: Palermo" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-brand-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Tipo de Inmueble</label>
+                                <select id="form-prop-type" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-brand-500">
+                                    <option>Departamento</option>
+                                    <option>Casa</option>
+                                    <option>Local Comercial</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Alquiler Mensual ($)</label>
+                                <input type="number" id="form-prop-rent" required placeholder="450000" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-brand-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Agente Asignado</label>
+                                <input type="text" id="form-prop-agent" value="${window.AppState.currentUser.name}" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-brand-500">
+                            </div>
+                        </div>
+                        <div class="pt-4 flex items-center justify-end gap-2 border-t border-slate-100">
+                            <button type="button" onclick="closeModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl">Cancelar</button>
+                            <button type="submit" class="px-4 py-2 text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 rounded-xl shadow-sm">Guardar en Base Compartida</button>
+                        </div>
+                    </form>
+                `;
+            } else if (type === 'add-payment') {
+                title = 'Registrar Cobro de Alquiler';
+                bodyHTML = `
+                    <form onsubmit="handleNewPaymentSubmit(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Inquilino</label>
+                            <input type="text" id="form-pay-tenant" required placeholder="Nombre del Inquilino" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-brand-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Propiedad</label>
+                            <input type="text" id="form-pay-prop" required placeholder="Dirección del inmueble" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-brand-500">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Monto ($)</label>
+                                <input type="number" id="form-pay-amount" required placeholder="480000" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-brand-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Concepto</label>
+                                <input type="text" id="form-pay-concept" value="Alquiler Mes Corriente" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none focus:border-brand-500">
+                            </div>
+                        </div>
+                        <div class="pt-4 flex items-center justify-end gap-2 border-t border-slate-100">
+                            <button type="button" onclick="closeModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl">Cancelar</button>
+                            <button type="submit" class="px-4 py-2 text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 rounded-xl shadow-sm">Registrar Cobranza</button>
+                        </div>
+                    </form>
+                `;
+            } else if (type === 'view-property') {
+                const prop = window.AppState.properties.find(p => p.id === param);
+                if (!prop) return;
+                title = `Ficha de Inmueble Compartido`;
+                bodyHTML = `
+                    <div class="space-y-4">
+                        <img src="${prop.img || 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&q=80&w=600'}" class="w-full h-48 object-cover rounded-xl">
+                        <div>
+                            <h3 class="text-base font-bold text-slate-900">${prop.address}</h3>
+                            <p class="text-xs text-slate-500">${prop.city} • ${prop.type}</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3 p-3 bg-slate-50 rounded-xl text-xs">
+                            <div><span class="text-slate-500">Alquiler:</span> <strong class="text-slate-800 block text-sm">${formatMoney(prop.rentAmount)}</strong></div>
+                            <div><span class="text-slate-500">Agente:</span> <strong class="text-slate-800 block text-sm">${prop.agent || 'Sin asignar'}</strong></div>
+                        </div>
+                        <div class="pt-2 flex justify-end">
+                            <button onclick="closeModal()" class="px-4 py-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl">Cerrar</button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            modalCard.innerHTML = `
+                <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                    <h3 class="text-sm font-bold text-slate-900">${title}</h3>
+                    <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 text-sm"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="p-6 overflow-y-auto max-h-[75vh]">
+                    ${bodyHTML}
+                </div>
+            `;
+
+            modalContainer.classList.remove('hidden');
+        };
+
+        const closeModal = () => {
+            document.getElementById('modal-container').classList.add('hidden');
+        };
+
+        const selectActiveUser = (name, role, initials, color) => {
+            window.AppState.currentUser.name = name;
+            window.AppState.currentUser.role = role;
+            window.AppState.currentUser.avatar = initials;
+            window.AppState.currentUser.color = color;
+
+            document.getElementById('user-name-display').textContent = name;
+            document.getElementById('user-role-display').textContent = role;
+            document.getElementById('user-avatar').textContent = initials;
+            document.getElementById('user-avatar').className = `w-8 h-8 rounded-lg ${color} flex items-center justify-center text-white font-bold text-xs shrink-0`;
+            document.getElementById('mobile-user-name').textContent = name.split(' ')[0];
+
+            closeModal();
+            showToast(`Perfil cambiado a: ${name}`, 'info');
+            window.updateUI();
+        };
+
+        const handleNewPropertySubmit = async (e) => {
+            e.preventDefault();
+            const newId = `PROP-${100 + window.AppState.properties.length + 1}`;
+            const newProp = {
+                id: newId,
+                address: document.getElementById('form-prop-address').value,
+                city: document.getElementById('form-prop-city').value,
+                type: document.getElementById('form-prop-type').value,
+                rentAmount: parseFloat(document.getElementById('form-prop-rent').value) || 0,
+                status: 'Disponible',
+                agent: document.getElementById('form-prop-agent').value || window.AppState.currentUser.name,
+                img: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&q=80&w=600'
+            };
+
+            if (window.dbHelpers) {
+                await window.dbHelpers.saveDocument('properties', newId, newProp);
+            } else {
+                window.AppState.properties.unshift(newProp);
+            }
+
+            closeModal();
+            showToast('Propiedad guardada y sincronizada');
+            window.updateUI();
+        };
+
+        const handleNewPaymentSubmit = async (e) => {
+            e.preventDefault();
+            const newId = `PAY-${Math.floor(1000 + Math.random() * 9000)}`;
+            const newPay = {
+                id: newId,
+                date: new Date().toISOString().split('T')[0],
+                tenant: document.getElementById('form-pay-tenant').value,
+                property: document.getElementById('form-pay-prop').value,
+                amount: parseFloat(document.getElementById('form-pay-amount').value) || 0,
+                concept: document.getElementById('form-pay-concept').value,
+                status: 'Pagado',
+                recordedBy: window.AppState.currentUser.name
+            };
+
+            if (window.dbHelpers) {
+                await window.dbHelpers.saveDocument('payments', newId, newPay);
+            } else {
+                window.AppState.payments.unshift(newPay);
+            }
+
+            closeModal();
+            showToast('Cobro registrado en la base compartida');
+            window.updateUI();
+        };
+
+        window.updateUI = () => {
+            const countProp = document.getElementById('badge-properties-count');
+            if (countProp) countProp.textContent = window.AppState.properties.length;
+
+            const countTick = document.getElementById('badge-tickets-count');
+            if (countTick) countTick.textContent = window.AppState.maintenanceTickets.length;
+
+            const main = document.getElementById('main-content');
+            if (!main) return;
+
+            switch (window.AppState.currentView) {
+                case 'dashboard':
+                    main.innerHTML = renderDashboard();
+                    initRevenueChart();
+                    break;
+                case 'properties':
+                    main.innerHTML = renderProperties();
+                    break;
+                case 'tenants':
+                    main.innerHTML = renderTenants();
+                    break;
+                case 'landlords':
+                    main.innerHTML = renderLandlords();
+                    break;
+                case 'leases':
+                    main.innerHTML = renderLeases();
+                    break;
+                case 'payments':
+                    main.innerHTML = renderPayments();
+                    break;
+                case 'maintenance':
+                    main.innerHTML = renderMaintenance();
+                    break;
+                case 'team':
+                    main.innerHTML = renderTeamView();
+                    break;
+                case 'calculator':
+                    main.innerHTML = renderCalculator();
+                    break;
+                default:
+                    main.innerHTML = renderDashboard();
+                    initRevenueChart();
+            }
+        };
+
+        const navigateTo = (view) => {
+            window.AppState.currentView = view;
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                if (btn.dataset.view === view) {
+                    btn.className = 'nav-btn active flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-white bg-brand-600 shadow-md shadow-brand-600/20';
+                } else {
+                    btn.className = 'nav-btn flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800/80 transition-all';
+                }
+            });
+            window.updateUI();
+        };
+
+        const applyPropertyFilters = () => {
+            const search = document.getElementById('prop-filter-search')?.value.toLowerCase() || '';
+            const status = document.getElementById('prop-filter-status')?.value || 'ALL';
+            const type = document.getElementById('prop-filter-type')?.value || 'ALL';
+
+            const filtered = window.AppState.properties.filter(p => {
+                const matchSearch = (p.address && p.address.toLowerCase().includes(search)) || (p.city && p.city.toLowerCase().includes(search));
+                const matchStatus = status === 'ALL' || p.status === status;
+                const matchType = type === 'ALL' || p.type === type;
+                return matchSearch && matchStatus && matchType;
+            });
+
+            const grid = document.getElementById('properties-grid');
+            if (grid) {
+                if (filtered.length === 0) {
+                    grid.innerHTML = `<div class="col-span-full py-12 text-center text-slate-400 font-medium text-sm">No se encontraron propiedades.</div>`;
+                } else {
+                    grid.innerHTML = filtered.map(generatePropertyCardHTML).join('');
+                }
+            }
+        };
+
+        const handleGlobalSearch = (queryStr) => {
+            if (!queryStr) return;
+            showToast(`Buscando "${queryStr}" en el servidor compartid...`, 'info');
+        };
+
+        const initRevenueChart = () => {
+            const ctx = document.getElementById('revenueChart');
+            if (!ctx) return;
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep'],
+                    datasets: [{
+                        label: 'Recaudación ($)',
+                        data: [1200000, 1350000, 1400000, 1600000, 1650000, 1730000],
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.08)',
+                        fill: true,
+                        tension: 0.35,
+                        borderWidth: 3,
+                        pointBackgroundColor: '#2563eb',
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: {
+                            grid: { color: '#f1f5f9' },
+                            ticks: { callback: (val) => '$' + (val / 1000) + 'k', font: { size: 11 } }
+                        },
+                        x: { grid: { display: false }, ticks: { font: { size: 11 } } }
+                    }
+                }
+            });
+        };
+
+        // Bind Window Load Handlers
+        window.onload = () => {
+            const mobileBtn = document.getElementById('btn-toggle-mobile-menu');
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('mobile-overlay');
+
+            const toggleMobileMenu = () => {
+                sidebar.classList.toggle('hidden');
+                sidebar.classList.toggle('fixed');
+                sidebar.classList.toggle('inset-y-0');
+                sidebar.classList.toggle('left-0');
+                overlay.classList.toggle('hidden');
+            };
+
+            mobileBtn?.addEventListener('click', toggleMobileMenu);
+            overlay?.addEventListener('click', toggleMobileMenu);
+
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    navigateTo(btn.dataset.view);
+                    if (window.innerWidth < 768 && !overlay.classList.contains('hidden')) {
+                        toggleMobileMenu();
+                    }
+                });
+            });
+
+            window.updateUI();
+        };
+    </script>
+</body>
+</html>
